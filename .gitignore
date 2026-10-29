@@ -57,6 +57,8 @@ eggs/
 lib64/
 parts/
 sdist/
+/deeptutor_web/*
+!/deeptutor_web/__init__.py
 var/
 wheels/
 *.egg-info/
