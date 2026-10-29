@@ -513,9 +513,10 @@ _router_loader = RouterLoader(
 )
 
 from deeptutor.api.module_routes import mount_module_routes
+from deeptutor.api.routers import labs as labs_router
 
 mount_module_routes(app, _router_loader)
-
+app.include_router(labs_router.router, prefix="/api/labs", tags=["labs"])
 
 @app.get("/")
 async def root():

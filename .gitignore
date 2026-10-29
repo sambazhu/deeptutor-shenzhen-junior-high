@@ -59,6 +59,8 @@ parts/
 sdist/
 /deeptutor_web/*
 !/deeptutor_web/__init__.py
+labs_cache/
+web/public/labs/
 var/
 wheels/
 *.egg-info/

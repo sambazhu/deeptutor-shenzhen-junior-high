@@ -63,15 +63,13 @@ export const PRIMARY_NAV: NavEntry[] = [
     surfaces: ['reading', 'chat', 'books'],
   },
   { href: '/space', label: 'Learning Space', icon: LayoutGrid, tooltipKey: 'Space tooltip' },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays, surfaces: ['chat'] },
   {
-    { href: '/calendar', label: 'Calendar', icon: CalendarDays, surfaces: ['chat'] },
-    {
-      href: '/lab',
-      label: '3D Lab',
-      icon: Compass,
-      tooltipKey: '3D Lab tooltip',
-      surfaces: ['reading', 'chat', 'books'],
-    },
+    href: '/lab',
+    label: '3D Lab',
+    icon: Compass,
+    tooltipKey: '3D Lab tooltip',
+    surfaces: ['reading', 'chat', 'books'],
   },
   {
     href: '/kanban',

@@ -206,13 +206,22 @@ export default function LabPage() {
                 <span>重置</span>
               </button>
               <a
+                href={`/api/labs/${activeExp.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90 transition-opacity shadow-sm"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span>本地全屏 ↗</span>
+              </a>
+              <a
                 href={`https://lab.tongjiang.app/${activeExp.slug}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5 text-xs font-medium text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                title="访问铜匠实验室原站"
               >
-                <ExternalLink className="h-3.5 w-3.5" />
-                <span>新标签全屏 ↗</span>
+                <span>原站 🌐</span>
               </a>
               <button
                 type="button"
@@ -225,13 +234,13 @@ export default function LabPage() {
             </div>
           </div>
 
-          <div className="relative w-full aspect-[16/10] max-h-[640px] min-h-[460px] bg-black/90">
+          <div className="relative w-full aspect-[16/10] max-h-[660px] min-h-[480px] bg-[var(--muted)]/30">
             <iframe
               key={iframeKey}
-              src={`https://lab.tongjiang.app/${activeExp.slug}`}
+              src={`/api/labs/${activeExp.slug}`}
               className="h-full w-full border-0"
               title={activeExp.title}
-              allow="fullscreen; accelerometer; gyroscope"
+              allow="fullscreen; accelerometer; gyroscope; xr-spatial-tracking"
             />
           </div>
         </section>
@@ -316,11 +325,11 @@ export default function LabPage() {
                   {isCurrentActive ? '正在体验中' : '页内交互 🎮'}
                 </button>
                 <a
-                  href={`https://lab.tongjiang.app/${exp.slug}`}
+                  href={`/api/labs/${exp.slug}`}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-lg border border-[var(--border)] p-2 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-                  title="新标签页全屏打开"
+                  title="在新标签页全屏打开（本地秒开）"
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>
