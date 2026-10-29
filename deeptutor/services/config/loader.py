@@ -313,11 +313,11 @@ DEFAULT_CHAT_PARAMS: dict[str, Any] = {
 # the table changes nothing until somebody edits agents.yaml. Stage names are
 # the pipeline's own vocabulary — they are the key a user types.
 DEFAULT_QUESTION_PARAMS: dict[str, Any] = {
-    "answering": {"max_tokens": 4000},
-    "planning": {"max_tokens": 6000},
-    "quiz_finish": {"max_tokens": 3000},
-    "repair": {"max_tokens": 2500},
-    "tool_summarizer": {"max_tokens": 800},
+    "answering": {"max_tokens": 8192},
+    "planning": {"max_tokens": 8192},
+    "quiz_finish": {"max_tokens": 8192},
+    "repair": {"max_tokens": 8192},
+    "tool_summarizer": {"max_tokens": 2048},
 }
 
 DEFAULT_RESEARCH_PARAMS: dict[str, Any] = {
