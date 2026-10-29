@@ -81,6 +81,73 @@ def _identity_logits(scores: Any) -> Any:
     return scores
 
 
+def _is_dashscope_reranker(model_name: str) -> bool:
+    lowered = model_name.strip().lower()
+    return (
+        lowered.startswith("dashscope/")
+        or lowered.startswith("gte-rerank")
+        or ("qwen" in lowered and "rerank" in lowered)
+    )
+
+
+def _rerank_via_dashscope(
+    query: str,
+    nodes: list[Any],
+    *,
+    top_k: int,
+    model_name: str,
+) -> list[Any] | None:
+    """Call DashScope compatible-api /v1/reranks using the configured embedding API key."""
+    import os
+    import httpx
+    from deeptutor.services.config import resolve_embedding_runtime_config
+
+    actual_model = model_name.strip().removeprefix("dashscope/").strip()
+    api_key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
+    if not api_key:
+        try:
+            api_key = (resolve_embedding_runtime_config().api_key or "").strip()
+        except Exception:
+            api_key = ""
+    if not api_key:
+        logger.warning("DashScope reranker %r requested, but no API key is configured.", model_name)
+        return None
+
+    docs = [result.node.get_content(metadata_mode=MetadataMode.LLM) for result in nodes]
+    body = {
+        "model": actual_model,
+        "query": query,
+        "documents": docs,
+        "top_n": max(1, int(top_k)),
+    }
+    try:
+        with httpx.Client(trust_env=False, timeout=15.0) as client:
+            resp = client.post(
+                "https://dashscope.aliyuncs.com/compatible-api/v1/reranks",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json=body,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+        results = payload.get("results") or (payload.get("output") or {}).get("results") or []
+        ranked: list[NodeWithScore] = []
+        for item in results[: max(1, int(top_k))]:
+            idx = int(item["index"])
+            score = float(item["relevance_score"])
+            if 0 <= idx < len(nodes) and math.isfinite(score):
+                ranked.append(NodeWithScore(node=nodes[idx].node, score=score))
+        if ranked:
+            return ranked
+    except Exception as exc:
+        logger.warning(
+            "DashScope reranker %r failed while scoring %d candidates; falling back: %s",
+            model_name,
+            len(nodes),
+            exc,
+        )
+    return None
+
+
 def rerank_nodes(
     query: str,
     nodes: list[Any],
@@ -97,6 +164,16 @@ def rerank_nodes(
     requested = max(1, int(top_k))
     if not query or not nodes or not model_name:
         return nodes[:requested]
+
+    if loader is None and _is_dashscope_reranker(model_name):
+        ds_ranked = _rerank_via_dashscope(
+            query,
+            nodes,
+            top_k=requested,
+            model_name=model_name,
+        )
+        if ds_ranked is not None:
+            return ds_ranked
 
     model = _cross_encoder(model_name, loader)
     if model is None:
