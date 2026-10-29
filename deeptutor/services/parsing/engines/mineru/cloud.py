@@ -508,6 +508,31 @@ def _download(zip_url: str) -> bytes:
         response.raise_for_status()
         return response.content
     except httpx.HTTPError as exc:
+        # Fallback for macOS TUN Fake-IP proxies where .org.cn is misrouted via overseas proxy
+        try:
+            import subprocess
+            from urllib.parse import urlparse
+
+            host = urlparse(zip_url).netloc
+            doh = subprocess.run(
+                ["/usr/bin/curl", "-fsSL", "--connect-timeout", "5", "--noproxy", "*", f"https://223.5.5.5/resolve?name={host}&type=A"],
+                capture_output=True,
+                text=True,
+            )
+            ips = [
+                ans["data"]
+                for ans in (json.loads(doh.stdout).get("Answer", []) if doh.returncode == 0 and doh.stdout.strip() else [])
+                if ans.get("type") == 1 and isinstance(ans.get("data"), str)
+            ]
+            for ip in ips[:3]:
+                dl = subprocess.run(
+                    ["/usr/bin/curl", "-fsSL", "--retry", "2", "--connect-timeout", "20", "--max-time", "300", "--noproxy", "*", "--resolve", f"{host}:443:{ip}", zip_url],
+                    capture_output=True,
+                )
+                if dl.returncode == 0 and len(dl.stdout) > 100:
+                    return dl.stdout
+        except Exception:
+            pass
         raise MinerUError(f"Failed to download MinerU result archive: {exc}") from exc
 
 
