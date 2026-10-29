@@ -7,6 +7,7 @@ transformations and embedding to LlamaIndex's official IngestionPipeline.
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from typing import Any
 
 from llama_index.core import Document, Settings, VectorStoreIndex
@@ -17,6 +18,63 @@ from llama_index.core.schema import BaseNode
 from . import vector_store
 from .config import should_show_progress, vector_index_config_from_settings
 from .embedding_adapter import current_embedding
+
+_HEADER_SPLIT_RE = re.compile(r"(?m)^(?=###\s*【|##\s+)")
+
+
+class TextbookHeaderBridgeSplitter(SentenceSplitter):
+    """Page/section-boundary-aware splitter that preserves textbook headers and
+    bridges cross-page sentence breaks.
+
+    1. Splits Markdown documents at ``### 【...】`` (page anchors) and ``## ...``
+       (section headers) first so chunks never mix unrelated pages.
+    2. Carries a 150-char ``[承上页]`` tail bridge across consecutive page
+       anchors so a theorem introduced at the bottom of page N-1 stays attached
+       to the worked example at the top of page N.
+    3. When a single page/section exceeds ``chunk_size`` and is split into
+       multiple sub-chunks, prepends the ``### 【...】`` / ``## ...`` header to
+       every sub-chunk so 100% of chunks retain their exact book/page/chapter
+       identity.
+    """
+
+    def split_text_metadata_aware(self, text: str, metadata_str: str) -> list[str]:
+        if "### 【" not in text and "\n## " not in text:
+            return super().split_text_metadata_aware(text, metadata_str)
+
+        sections = [s.strip() for s in _HEADER_SPLIT_RE.split(text) if s.strip()]
+        if len(sections) <= 1:
+            return super().split_text_metadata_aware(text, metadata_str)
+
+        final_chunks: list[str] = []
+        prev_body_tail = ""
+
+        for sec in sections:
+            parts = sec.split("\n", 1)
+            first_line = parts[0].strip()
+            body = parts[1].strip() if len(parts) > 1 else ""
+            is_page_sec = first_line.startswith("### 【")
+            is_sec_hdr = is_page_sec or first_line.startswith("## ")
+
+            if is_page_sec and prev_body_tail:
+                bridged_sec = f"{first_line}\n[承上页] {prev_body_tail}\n\n{body}"
+            else:
+                bridged_sec = sec
+
+            if is_page_sec and body:
+                prev_body_tail = re.sub(r"\s+", " ", body)[-150:].strip()
+            elif not is_page_sec:
+                prev_body_tail = ""
+
+            sub_splits = super().split_text_metadata_aware(bridged_sec, metadata_str)
+            for idx, st in enumerate(sub_splits):
+                st = st.strip()
+                if not st:
+                    continue
+                if idx > 0 and is_sec_hdr and not st.startswith(first_line):
+                    st = f"{first_line}\n\n{st}"
+                final_chunks.append(st)
+
+        return final_chunks or super().split_text_metadata_aware(text, metadata_str)
 
 
 def build_ingestion_pipeline() -> IngestionPipeline:
@@ -29,7 +87,7 @@ def build_ingestion_pipeline() -> IngestionPipeline:
 
     return IngestionPipeline(
         transformations=[
-            SentenceSplitter(
+            TextbookHeaderBridgeSplitter(
                 chunk_size=Settings.chunk_size,
                 chunk_overlap=Settings.chunk_overlap,
             ),

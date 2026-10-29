@@ -5,12 +5,14 @@ from __future__ import annotations
 from functools import lru_cache
 import logging
 from pathlib import Path
+import re
 import shutil
 from typing import Any
 
 from llama_index.core.llms.mock import MockLLM
-from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.retrievers import BaseRetriever, QueryFusionRetriever
 from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
+from llama_index.core.schema import MetadataMode, NodeWithScore, QueryBundle
 
 from .config import (
     HYBRID_PROFILE,
@@ -24,6 +26,65 @@ from .rerank import rerank_nodes
 logger = logging.getLogger(__name__)
 
 BM25_PERSIST_DIRNAME = "bm25_retriever"
+
+_ZH_STOPWORDS = frozenset(
+    "的了是在有和与或把被让给向从到对为以之于而及等个中上下来去说看想能会要可以便就都也还又再更最很太只但却因所如果虽"
+)
+_ZH_TOKEN_RE = re.compile(
+    r"例\s*\d+|习题\s*[\d.]+|随堂练习|尝试[·•]思考|尝试[·•]交流|观察[·•]思考|回顾[·•]反思|"
+    r"第[一二三四五六七八九十百\d]+[章节课页单元题]|PDF第\d+页|[A-Za-z0-9_]+|[\u4e00-\u9fff]+"
+)
+
+
+def zh_tokenize_text(text: str) -> list[str]:
+    """Tokenize Chinese + English + Math textbook text for BM25 lexical matching."""
+    tokens: list[str] = []
+    for m in _ZH_TOKEN_RE.finditer(text or ""):
+        seg = re.sub(r"\s+", "", m.group(0))
+        if not seg:
+            continue
+        if re.fullmatch(r"[\u4e00-\u9fff]+", seg):
+            n = len(seg)
+            for i in range(n - 1):
+                tokens.append(seg[i : i + 2])
+            for ch in seg:
+                if ch not in _ZH_STOPWORDS:
+                    tokens.append(ch)
+        else:
+            tokens.append(seg.lower())
+    return tokens or [""]
+
+
+class ChineseBM25Retriever(BaseRetriever):
+    """Chinese + textbook-aware BM25 retriever backed by ``bm25s.BM25``."""
+
+    def __init__(self, nodes: list[Any], similarity_top_k: int = 5) -> None:
+        import bm25s
+
+        super().__init__()
+        self.nodes = list(nodes)
+        self.similarity_top_k = max(1, min(int(similarity_top_k), max(1, len(self.nodes))))
+        self.engine = bm25s.BM25()
+        corpus_tokens = [
+            zh_tokenize_text(node.get_content(metadata_mode=MetadataMode.EMBED))
+            for node in self.nodes
+        ]
+        if corpus_tokens:
+            self.engine.index(corpus_tokens, show_progress=False)
+
+    def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
+        query = (query_bundle.query_str or "").strip()
+        if not query or not self.nodes:
+            return []
+        k = min(self.similarity_top_k, len(self.nodes))
+        q_tokens = [zh_tokenize_text(query)]
+        indexes, scores = self.engine.retrieve(q_tokens, k=k, show_progress=False)
+        results: list[NodeWithScore] = []
+        for idx, sc in zip(indexes[0], scores[0]):
+            i = int(idx)
+            if 0 <= i < len(self.nodes):
+                results.append(NodeWithScore(node=self.nodes[i], score=float(sc)))
+        return results
 
 
 def _import_bm25_retriever():
@@ -77,41 +138,30 @@ def effective_retrieval_profile(profile: str | None) -> str:
     return normalized
 
 
+_ZH_BM25_CACHE: dict[tuple[int, int], ChineseBM25Retriever] = {}
+
+
 def build_bm25_retriever(index: Any, storage_dir: Path, *, top_k: int) -> Any | None:
-    """Build or load LlamaIndex's official BM25 retriever if available."""
+    """Build or load Chinese-aware BM25 retriever if ``bm25s`` is available."""
     top_k = max(1, int(top_k))
-    # BM25 raises ("k of N is larger than the number of available scores") when
-    # similarity_top_k exceeds the corpus size — so a small knowledge base (e.g. a
-    # single short document) would crash hybrid retrieval at query time. Clamp to
-    # the node count so it returns what it has instead of erroring.
-    corpus_size = _corpus_size(index)
-    if corpus_size:
-        top_k = min(top_k, corpus_size)
-    bm25_cls = _import_bm25_retriever()
-    if bm25_cls is None:
-        # #1792: an INFO line was invisible in normal runs, so deployments on
-        # Python 3.14 (where the BM25 dependency is marker-excluded) ran
-        # vector-only without ever knowing. The configured profile is not the
-        # effective one — say so at warning level.
-        logger.warning(
-            "LlamaIndex BM25 retriever package is not installed; configured "
-            "retrieval profile will run vector-only. Install "
-            "'llama-index-retrievers-bm25' to restore hybrid retrieval."
-        )
+    docstore = getattr(index, "docstore", None)
+    docs = getattr(docstore, "docs", None)
+    if not isinstance(docs, dict) or not docs:
         return None
-
-    persist_dir = _bm25_persist_dir(storage_dir)
-    if persist_dir.exists():
-        try:
-            retriever = bm25_cls.from_persist_dir(str(persist_dir))
-            return _set_similarity_top_k(retriever, top_k)
-        except Exception as exc:
-            logger.warning("Failed to load persisted BM25 retriever from %s: %s", persist_dir, exc)
-
+    nodes = list(docs.values())
+    top_k = min(top_k, len(nodes))
+    cache_key = (id(index), len(nodes))
+    cached = _ZH_BM25_CACHE.get(cache_key)
+    if cached is not None:
+        return _set_similarity_top_k(cached, top_k)
     try:
-        return bm25_cls.from_defaults(index=index, similarity_top_k=top_k)
+        retriever = ChineseBM25Retriever(nodes=nodes, similarity_top_k=top_k)
+        if len(_ZH_BM25_CACHE) >= 32:
+            _ZH_BM25_CACHE.clear()
+        _ZH_BM25_CACHE[cache_key] = retriever
+        return retriever
     except Exception as exc:
-        logger.warning("Failed to build BM25 retriever; falling back to vector retrieval: %s", exc)
+        logger.warning("Failed to build ChineseBM25Retriever; falling back to vector retrieval: %s", exc)
         return None
 
 
