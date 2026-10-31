@@ -9,6 +9,7 @@ import {
   Bot,
   Brain,
   ClipboardList,
+  Compass,
   Ear,
   History,
   NotebookPen,
@@ -42,6 +43,7 @@ export type DashKey =
   | "skills"
   | "mcp"
   | "cli_apps"
+  | "lab"
   | "whisper";
 
 export interface DashboardItem {
@@ -151,6 +153,17 @@ export const DASHBOARD_GROUPS: DashboardGroup[] = [
   {
     label: { zh: "更多项目", en: "More Projects" },
     items: [
+      {
+        key: "lab",
+        href: "/lab",
+        icon: Compass,
+        title: { zh: "3D 实验室", en: "3D Lab" },
+        blurb: {
+          zh: "初中科学 3D 互动沙盘与虚拟仿真实验室。",
+          en: "Interactive 3D simulation sandboxes for junior high sciences.",
+        },
+        tile: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+      },
       {
         key: "whisper",
         href: "/whisper",

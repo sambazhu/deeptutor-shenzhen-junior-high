@@ -6,7 +6,7 @@ import { useId, useState, startTransition, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { m, useReducedMotion } from 'framer-motion'
-import { MessageCircle, Search, Columns3, PenLine } from 'lucide-react'
+import { MessageCircle, Search, Columns3, PenLine, Compass } from 'lucide-react'
 import {
   HomeShelfIcon,
   LearningShelfIcon,
@@ -236,6 +236,7 @@ export function CategoryBody({
           <Section title={t('navigation.workspace')}>
             {[
               { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+              { href: '/lab', label: '3D Lab', icon: Compass },
               { href: '/kanban', label: 'Task Board', icon: Columns3 },
               { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
             ]

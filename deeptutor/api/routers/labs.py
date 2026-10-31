@@ -6,6 +6,11 @@ router = APIRouter()
 
 CACHE_DIRS = [
     Path.home() / ".deeptutor" / "labs_cache",
+    Path("/Users/zhuqiuyu/朱秋宇/朱秋宇学习系统/DeepTutor/labs_cache"),
+    Path("/Users/zhuqiuyu/朱秋宇/朱秋宇学习系统/朱秋宇初一学习台账/00_教材与参考书/00_3D实验室课件"),
+    Path("/Users/zhuqiuyu/朱秋宇/朱秋宇初一学习台账/00_教材与参考书/00_3D实验室课件"),
+    Path.home() / "dshworkplace" / "DeepTutor" / "labs_cache",
+    Path.home() / "dshworkplace" / "朱秋宇初一学习台账" / "00_教材与参考书" / "00_3D实验室课件",
     Path("/Users/sambazhu/dshworkplace/DeepTutor/labs_cache"),
     Path("/Users/sambazhu/dshworkplace/朱秋宇初一学习台账/00_教材与参考书/00_3D实验室课件"),
 ]

@@ -5,7 +5,7 @@ import { CalendarDays } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { Columns3, CornerDownLeft, MessageCircle, PenLine, Search, Settings, Users, type LucideIcon } from 'lucide-react'
+import { Columns3, Compass, CornerDownLeft, MessageCircle, PenLine, Search, Settings, Users, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import PartnerAvatar from '@/components/partners/PartnerAvatar'
 import { DASHBOARD_GROUPS, PERSONALIZATION_GROUPS, visibleGroups } from '@/components/space/dashboard-groups'
@@ -84,7 +84,8 @@ export function CommandPalette({
       ...categories.map(item => ({ id: `category:${item.id}`, label: t(item.label), icon: glyph(item.icon), run: go(item.href) })),
       ...[
         { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-              { href: '/kanban', label: 'Task Board', icon: Columns3 },
+        { href: '/lab', label: '3D Lab', icon: Compass },
+        { href: '/kanban', label: 'Task Board', icon: Columns3 },
         { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
       ]
         .filter(item => navVisibleUnderPolicy(item.href, allowedSurfaces))
