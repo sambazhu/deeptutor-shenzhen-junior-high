@@ -103,7 +103,10 @@ def _rerank_via_dashscope(
     from deeptutor.services.config import resolve_embedding_runtime_config
 
     actual_model = model_name.strip().removeprefix("dashscope/").strip()
-    api_key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
+    api_key = (
+        os.environ.get("DASHSCOPE_API_KEY", "").strip()
+        or os.environ.get("ALIYUNBAILIAN_API_KEY", "").strip()
+    )
     if not api_key:
         try:
             api_key = (resolve_embedding_runtime_config().api_key or "").strip()
