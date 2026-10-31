@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 interface StudentWelcomeGuideProps {
-  onPick: (prompt: string) => void
+  onPick: (prompt: string, kbs?: string[]) => void
   disabled?: boolean
 }
 
@@ -27,13 +27,14 @@ export default function StudentWelcomeGuide({ onPick, disabled }: StudentWelcome
     {
       id: 'wrongbook',
       title: '错题攻坚与变式',
-      badge: '已同步 52 题',
+      badge: '已同步 53 题',
       desc: '调取微信台账错题，出一道有理数或代数同类型变式题巩固消灭',
       icon: Target,
       color: 'amber',
       action: () => {
         onPick(
-          '请查看我的错题知识库（qiuyu-wrongbook），针对最近错误率较高的知识点，帮我出一道同类型的初一变式题让我练手。'
+          '请查看我的错题知识库（qiuyu-wrongbook），针对最近错误率较高的知识点，帮我出一道同类型的初一变式题让我练手。',
+          ['qiuyu-wrongbook']
         )
       },
     },
@@ -52,12 +53,13 @@ export default function StudentWelcomeGuide({ onPick, disabled }: StudentWelcome
       id: 'textbook',
       title: '深圳教材同步答疑',
       badge: '44 本教材 PDF',
-      desc: '紧扣湘教版地理、人教版数学等深圳七科教材，讲透核心考点与公式',
+      desc: '紧扣湘教版地理、北师大版数学等深圳七科教材，讲透核心考点与公式',
       icon: BookOpen,
       color: 'blue',
       action: () => {
         onPick(
-          '请结合深圳七年级上册教材，帮我梳理湘教版地理《认识地球：地球运动》的核心考点与易错题。'
+          '请结合深圳七年级上册教材，帮我梳理湘教版地理《认识地球：地球运动》的核心考点与易错题。',
+          ['sz-g7-geography-xj', 'sz-g7-math-bsd']
         )
       },
     },
@@ -80,18 +82,22 @@ export default function StudentWelcomeGuide({ onPick, disabled }: StudentWelcome
     {
       label: '📐 有理数错题变式题 2 道',
       prompt: '请针对我错题本里的“有理数乘方与符号规律”，给我出 2 道易错变式选择题，并带解析。',
+      kbs: ['qiuyu-wrongbook'],
     },
     {
       label: '🌍 湘教版地理：极昼极夜成因',
       prompt: '请结合湘教版七年级地理教材，用直白的语言帮我讲讲：为什么南极圈内会出现极夜现象？',
+      kbs: ['sz-g7-geography-xj'],
     },
     {
       label: '🔤 初一英语 Unit 1-3 重点单词',
       prompt: '帮我整理初一上册英语 Unit 1-3 的核心高频考点单词和容易拼错的变形词汇清单。',
+      kbs: ['sz-g7-english-hj'],
     },
     {
       label: '🔬 细胞质壁分离实验要点',
       prompt: '请用表格总结“洋葱鳞片叶外表皮细胞质壁分离与复原”实验的操作步骤、试剂浓度和观察要点。',
+      kbs: ['sz-g7-biology-rj'],
     },
   ]
 
@@ -105,7 +111,7 @@ export default function StudentWelcomeGuide({ onPick, disabled }: StudentWelcome
             <span className="text-lg">👋</span>
           </h2>
           <p className="text-xs text-[var(--muted-foreground)] mt-1">
-            微信台账已同步 · 包含 52 道错题库与深圳初一上册教材。点击下方卡片即可开始：
+            微信台账已同步 · 包含 53 道错题库与深圳初一上册教材。点击下方卡片即可开始：
           </p>
         </div>
         <button
@@ -201,7 +207,7 @@ export default function StudentWelcomeGuide({ onPick, disabled }: StudentWelcome
               key={idx}
               type="button"
               disabled={disabled}
-              onClick={() => onPick(pill.prompt)}
+              onClick={() => onPick(pill.prompt, pill.kbs)}
               className="bg-[var(--card)] hover:bg-[var(--accent)] hover:text-[var(--primary)] border border-[var(--border)] px-3 py-1.5 rounded-xl transition-all text-left text-xs text-[var(--foreground)] shadow-xs disabled:opacity-50"
             >
               {pill.label}

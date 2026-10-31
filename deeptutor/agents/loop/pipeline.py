@@ -1841,7 +1841,21 @@ class AgenticLoopPipeline:
 
     @staticmethod
     def _selected_kbs(context: UnifiedContext) -> list[str]:
-        return [str(kb).strip() for kb in context.knowledge_bases if str(kb).strip()]
+        explicit = [str(kb).strip() for kb in context.knowledge_bases if str(kb).strip()]
+        if explicit:
+            return explicit
+        msg_parts = [context.user_message or ""]
+        if getattr(context, "conversation_history", None):
+            for item in context.conversation_history[-3:]:
+                if isinstance(item, dict):
+                    msg_parts.append(str(item.get("content") or ""))
+                elif hasattr(item, "content"):
+                    msg_parts.append(str(item.content or ""))
+        full_text = " ".join(msg_parts).lower()
+        auto_kbs: list[str] = []
+        if any(kw in full_text for kw in ["qiuyu-wrongbook", "错题", "错题本", "错题库", "wrongbook"]):
+            auto_kbs.append("qiuyu-wrongbook")
+        return auto_kbs
 
     def _rag_kbs(self, context: UnifiedContext) -> list[str]:
         """Attached KBs served by rag; PageIndex KBs use their SDK tools."""

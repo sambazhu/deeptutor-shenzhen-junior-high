@@ -592,9 +592,12 @@ export default function ChatWorkspace() {
   // ``AskUserOptions`` chip click can drop text into the composer textarea.
   const prefillInputRef = useRef<((text: string) => void) | null>(null);
   const focusComposerRef = useRef<(() => void) | null>(null);
-  const handlePrefillComposer = useCallback((text: string) => {
+  const handlePrefillComposer = useCallback((text: string, kbs?: string[]) => {
     prefillInputRef.current?.(text);
-  }, []);
+    if (kbs && kbs.length > 0) {
+      setKBs(Array.from(new Set([...state.knowledgeBases, ...kbs])));
+    }
+  }, [setKBs, state.knowledgeBases]);
 
   // A message handed over by another page (Settings' "set up with DeepTutor"
   // button). Prefilled rather than sent: the user reads what will be asked and
@@ -1344,6 +1347,16 @@ export default function ChatWorkspace() {
     const pruned = selected.filter((name) => availableKbNames.has(name));
     if (pruned.length !== selected.length) setKBs(pruned);
   }, [availableKbNames, knowledgeBasesLoaded, state.knowledgeBases, setKBs]);
+
+  // In Student Mode, auto-attach qiuyu-wrongbook if no KB is selected and conversation has no messages yet.
+  useEffect(() => {
+    if (!studentMode || !knowledgeBasesLoaded) return;
+    if (state.messages.length === 0 && state.knowledgeBases.length === 0) {
+      if (availableKbNames.has("qiuyu-wrongbook")) {
+        setKBs(["qiuyu-wrongbook"]);
+      }
+    }
+  }, [studentMode, knowledgeBasesLoaded, state.messages.length, state.knowledgeBases.length, availableKbNames, setKBs]);
 
   const refreshUserEnabledTools = useCallback(
     async (options?: { force?: boolean }) => {
