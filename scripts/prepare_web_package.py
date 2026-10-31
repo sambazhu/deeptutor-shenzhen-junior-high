@@ -43,6 +43,8 @@ def prepare_web_package(*, skip_build: bool = False) -> None:
 
     _clean_package_dir(PACKAGE_DIR)
     shutil.copytree(standalone, PACKAGE_DIR, dirs_exist_ok=True)
+    if (WEB_DIR / "node_modules" / "@swc").exists():
+        shutil.copytree(WEB_DIR / "node_modules" / "@swc", PACKAGE_DIR / "node_modules" / "@swc", dirs_exist_ok=True)
     if static_dir.exists():
         shutil.copytree(static_dir, PACKAGE_DIR / ".next" / "static", dirs_exist_ok=True)
     if public_dir.exists():
