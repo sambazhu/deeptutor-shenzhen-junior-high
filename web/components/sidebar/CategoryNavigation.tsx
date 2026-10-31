@@ -6,7 +6,8 @@ import { useId, useState, startTransition, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { m, useReducedMotion } from 'framer-motion'
-import { MessageCircle, Search, Columns3, PenLine, Compass } from 'lucide-react'
+import { MessageCircle, Search, Columns3, PenLine, Compass, BookOpen, Target } from 'lucide-react'
+import { useStudentMode } from '@/hooks/useStudentMode'
 import {
   HomeShelfIcon,
   LearningShelfIcon,
@@ -60,9 +61,13 @@ export const CATEGORIES = [
 export function useCategoryNavigation() {
   const pathname = usePathname()
   const { learningPolicy } = useAuthStatus()
-  const categories = CATEGORIES.filter(item =>
+  const { studentMode } = useStudentMode()
+  const rawCategories = CATEGORIES.filter(item =>
     navVisibleUnderPolicy(item.href, learningPolicy?.allowedSurfaces ?? null)
   )
+  const categories = studentMode
+    ? rawCategories.filter(item => item.id === 'home' || item.id === 'learning')
+    : rawCategories
   const [visited, setVisited] = useState<NavigationCategory[]>([])
   const [selection, setSelection] = useState<{
     pathname: string
@@ -218,7 +223,9 @@ export function CategoryBody({
   /** Learning conversations, filed by the learning shelf under their records. */
   learningSessions?: LearningSessions
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const { studentMode } = useStudentMode()
+  const zh = (i18n?.language ?? '').startsWith('zh')
   if (collapsed) return null
   return (
     <div
@@ -233,13 +240,20 @@ export function CategoryBody({
           {navVisibleUnderPolicy('/chat', nav.allowedSurfaces) && (
             <OverviewRow href="/chat" label={t('navigation.chat')} icon={MessageCircle} />
           )}
-          <Section title={t('navigation.workspace')}>
-            {[
-              { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-              { href: '/lab', label: '3D Lab', icon: Compass },
-              { href: '/kanban', label: 'Task Board', icon: Columns3 },
-              { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
-            ]
+          <Section title={studentMode ? (zh ? '初一专属学习入口' : 'Junior High Shortcuts') : t('navigation.workspace')}>
+            {(studentMode
+              ? [
+                  { href: '/lab', label: '3D Lab', icon: Compass },
+                  { href: '/learning/practice', label: 'Mistakes Mastery', icon: Target },
+                  { href: '/books', label: 'Shenzhen Textbooks', icon: BookOpen },
+                ]
+              : [
+                  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+                  { href: '/lab', label: '3D Lab', icon: Compass },
+                  { href: '/kanban', label: 'Task Board', icon: Columns3 },
+                  { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
+                ]
+            )
               .filter(item => navVisibleUnderPolicy(item.href, nav.allowedSurfaces))
               .map(item => (
                 <NavigationRow

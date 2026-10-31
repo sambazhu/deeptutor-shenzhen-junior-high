@@ -44,6 +44,8 @@ import {
 } from "@/lib/session-load";
 import { PageCustomizeButton } from "@/components/customization/PageCustomizeButton";
 import StarterSuggestions from "@/components/chat/home/StarterSuggestions";
+import StudentWelcomeGuide from "@/components/chat/home/StudentWelcomeGuide";
+import { useStudentMode } from "@/hooks/useStudentMode";
 // Imported eagerly so the drawer shell is always mounted off-screen —
 // clicking a chip becomes a single CSS class flip, no chunk fetch + double
 // render. The heavy renderers inside still load lazily.
@@ -279,6 +281,7 @@ export default function ChatWorkspace() {
     error: capabilityCatalogError,
   } = useCapabilityCatalog();
   const { setActiveSessionId, language: appLanguage } = useAppShell();
+  const { studentMode, toggleStudentMode } = useStudentMode();
 
   const {
     state,
@@ -2558,7 +2561,19 @@ export default function ChatWorkspace() {
                   </span>
                 ) : null}
               </PageBarSlot>
-              <PageBarSlot name="actions" className="flex shrink-0 items-center gap-0.5">
+              <PageBarSlot name="actions" className="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={toggleStudentMode}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border shadow-xs ${
+                    studentMode
+                      ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/15"
+                      : "bg-[var(--secondary)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                  }`}
+                  title={studentMode ? "当前为初中生极简模式，点击切换至全功能运维模式" : "当前为全功能模式，点击切换至孩子专注模式"}
+                >
+                  <span>{studentMode ? "👶 孩子专注模式" : "⚙️ 全功能模式"}</span>
+                </button>
                 <PageCustomizeButton page="chat" capabilities={visibleCapabilities} compact />
                 <HeaderActionButton
                   onClick={() => viewerPanelRef.current?.openMarkdownNoteTab()}
@@ -2605,21 +2620,23 @@ export default function ChatWorkspace() {
               ) : !hasMessages ? (
                 // Clipped rather than pushed under the header when a short
                 // window leaves the greeting no room.
-                <div className="flex w-full flex-1 min-h-0 items-end justify-center overflow-hidden pb-14 animate-fade-in px-6">
-                  <div className="w-full max-w-[960px] flex items-center justify-center gap-4">
-                    <img
-                      src="/brand/black-logo.png"
-                      alt="DeepTutor"
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 select-none dark:invert"
-                      draggable={false}
-                    />
-                    <h1 className="font-serif text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--foreground)]">
-                      {t(welcomeGreeting)}
-                    </h1>
+                studentMode ? null : (
+                  <div className="flex w-full flex-1 min-h-0 items-end justify-center overflow-hidden pb-14 animate-fade-in px-6">
+                    <div className="w-full max-w-[960px] flex items-center justify-center gap-4">
+                      <img
+                        src="/brand/black-logo.png"
+                        alt="DeepTutor"
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 select-none dark:invert"
+                        draggable={false}
+                      />
+                      <h1 className="font-serif text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--foreground)]">
+                        {t(welcomeGreeting)}
+                      </h1>
+                    </div>
                   </div>
-                </div>
+                )
               ) : (
                 // Positioned wrapper spanning exactly the scrollport, so the
                 // turn navigator can overlay the left gutter without living
@@ -2917,17 +2934,24 @@ export default function ChatWorkspace() {
                 moment the conversation has a first message. Picking one only
                 writes it into the composer: sending stays the learner's. */}
               {!hasMessages ? (
-                <StarterSuggestions
-                  workspaceId={state.workspaceId || ""}
-                  onPick={handlePrefillComposer}
-                  disabled={state.isStreaming}
-                />
+                studentMode ? (
+                  <StudentWelcomeGuide
+                    onPick={handlePrefillComposer}
+                    disabled={state.isStreaming}
+                  />
+                ) : (
+                  <StarterSuggestions
+                    workspaceId={state.workspaceId || ""}
+                    onPick={handlePrefillComposer}
+                    disabled={state.isStreaming}
+                  />
+                )
               ) : null}
               <div
                 aria-hidden="true"
                 className="shrink-0"
                 style={{
-                  flexGrow: hasMessages ? 0 : 1.4,
+                  flexGrow: hasMessages ? 0 : (studentMode ? 0.3 : 1.4),
                   transition: "flex-grow 650ms cubic-bezier(0.16, 1, 0.3, 1)",
                 }}
               />

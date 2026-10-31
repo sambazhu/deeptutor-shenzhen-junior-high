@@ -6202,5 +6202,9 @@
  "customize.emptyLearningHint": "Customize this page to show learning methods. Unavailable modules can be reviewed in Settings → Runtime.",
  "customize.learningFooter": "Your choices are saved to your account. Only learning methods available in this environment are shown.",
   "3D Lab": "3D Lab",
-  "3D Lab tooltip": "3D interactive science sandboxes and virtual labs."
+  "3D Lab tooltip": "3D interactive science sandboxes and virtual labs.",
+  "Student Mode": "Student Mode",
+  "Full Mode": "Full Mode",
+  "Mistakes Mastery": "Mistakes Mastery",
+  "Shenzhen Textbooks": "Shenzhen Textbooks"
 }

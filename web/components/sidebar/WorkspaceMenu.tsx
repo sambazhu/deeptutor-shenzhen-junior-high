@@ -3,12 +3,13 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useId, useState, type ReactNode } from 'react'
-import { Check, ChevronDown, Settings, Settings2 } from 'lucide-react'
+import { Check, ChevronDown, Settings, Settings2, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useMenuPopover } from '@/shared/ui/useMenuPopover'
 import Tooltip from '@/shared/ui/Tooltip'
 import { useWorkspaceChoices } from '@/components/workspaces/useWorkspaceChoices'
 import { VersionBadge } from '@/components/sidebar/VersionBadge'
+import { useStudentMode } from '@/hooks/useStudentMode'
 
 const GLYPH_TINTS = ['#e3655b', '#d9822b', '#c9a227', '#4f9d69', '#3d8fb8', '#6c6fd1', '#a35fc0', '#c25b8a']
 
@@ -81,6 +82,7 @@ export function WorkspaceMenu({
 }) {
   const { t } = useTranslation()
   const { active, currentName } = useWorkspaceChoices()
+  const { studentMode, toggleStudentMode } = useStudentMode()
   const [open, setOpen] = useState(false)
   const rootRef = useMenuPopover<HTMLDivElement>(open, setOpen)
   const menuId = useId()
@@ -121,6 +123,19 @@ export function WorkspaceMenu({
       {open && (
         <div id={menuId} role="menu" aria-label={t('Manage workspaces')} className="dt-popover dt-workspace-panel">
           <WorkspaceChoiceList onChoose={close} />
+          <div className="dt-menu-divider" />
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              toggleStudentMode()
+              close()
+            }}
+            className="dt-menu-item"
+          >
+            <Sparkles size={16} strokeWidth={1.6} className="text-blue-500" />
+            <span className="flex-1 font-medium">{studentMode ? '👶 孩子专注模式 (开)' : '⚙️ 全功能模式 (开)'}</span>
+          </button>
           <div className="dt-menu-divider" />
           <Link role="menuitem" href="/settings" prefetch={false} onClick={close} className="dt-menu-item">
             <Settings size={16} strokeWidth={1.6} />
